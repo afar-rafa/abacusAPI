@@ -6,11 +6,13 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .filters import PortfolioAssetFilter 
 from .models import Deposit, Portfolio, Asset, PortfolioAsset, Price
 from .serializers import DepositSerializer, PortfolioAssetSerializer, PortfolioSerializer, AssetSerializer, PriceSerializer
 
@@ -53,6 +55,8 @@ class PriceViewSet(viewsets.ModelViewSet):
 class PortfolioAssetViewSet(viewsets.ModelViewSet):
     queryset = PortfolioAsset.objects.all()
     serializer_class = PortfolioAssetSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PortfolioAssetFilter
 
 class DepositViewSet(viewsets.ModelViewSet):
     queryset = Deposit.objects.all()
