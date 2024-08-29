@@ -25,3 +25,16 @@ class Price(models.Model):
 
     def __str__(self):
         return f"{self.asset.name} - {self.price} on {self.date}"
+    
+
+class PortfolioAssetQuantity(models.Model):
+    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ('portfolio', 'asset')
+
+    def __str__(self):
+        return f"{self.portfolio.name} - {self.asset.name} ({self.quantity})"
+    

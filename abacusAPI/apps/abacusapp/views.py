@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from .models import Portfolio, Asset, Price
-from .serializers import PortfolioSerializer, AssetSerializer, PriceSerializer
+from .models import Portfolio, Asset, PortfolioAssetQuantity, Price
+from .serializers import PortfolioAssetQuantitySerializer, PortfolioSerializer, AssetSerializer, PriceSerializer
 
 class PortfolioViewSet(viewsets.ModelViewSet):
     queryset = Portfolio.objects.all()
@@ -13,3 +13,8 @@ class AssetViewSet(viewsets.ModelViewSet):
 class PriceViewSet(viewsets.ModelViewSet):
     queryset = Price.objects.all()
     serializer_class = PriceSerializer
+
+
+class PortfolioAssetQuantityViewSet(viewsets.ModelViewSet):
+    queryset = PortfolioAssetQuantity.objects.all()
+    serializer_class = PortfolioAssetQuantitySerializer
