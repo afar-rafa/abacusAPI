@@ -50,7 +50,7 @@ class Price(models.Model):
 class PortfolioAsset(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=10, decimal_places=4)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     weight = models.DecimalField(max_digits=10, decimal_places=4)
 
     class Meta:
