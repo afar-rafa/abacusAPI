@@ -8,6 +8,11 @@ class PortfolioSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class PortfolioDailyValueSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    value = serializers.DecimalField(max_digits=20, decimal_places=4)
+    weights = serializers.DictField(child=serializers.DecimalField(max_digits=7, decimal_places=4))
+
 class AssetSerializer(serializers.ModelSerializer):
     price = serializers.SerializerMethodField()
 

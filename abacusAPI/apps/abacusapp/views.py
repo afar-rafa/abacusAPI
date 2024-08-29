@@ -8,13 +8,16 @@ from django.db import transaction
 from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from abacusAPI.apps.abacusapp.services import calculate_portfolio_daily_value, calculate_portfolio_daily_values
+
 from .filters import PortfolioAssetFilter 
 from .models import Deposit, Portfolio, Asset, PortfolioAsset, Price
-from .serializers import DepositSerializer, PortfolioAssetSerializer, PortfolioSerializer, AssetSerializer, PriceSerializer
+from .serializers import DepositSerializer, PortfolioAssetSerializer, PortfolioDailyValueSerializer, PortfolioSerializer, AssetSerializer, PriceSerializer
 
 logger = logging.getLogger('abacusapp')
 
@@ -23,6 +26,33 @@ class PortfolioViewSet(viewsets.ModelViewSet):
     queryset = Portfolio.objects.all()
     serializer_class = PortfolioSerializer
 
+
+    @action(detail=True, methods=['get'])
+    def daily_value(self, request, pk=None):
+        portfolio = self.get_object()
+        date = request.query_params.get('date')
+
+        if not date:
+            return Response({"error": "Please provide a date."}, status=status.HTTP_400_BAD_REQUEST)
+
+        daily_value = calculate_portfolio_daily_value(portfolio, date)
+        serializer = PortfolioDailyValueSerializer(daily_value)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def daily_values(self, request, pk=None):
+        portfolio = self.get_object()
+        initial_date = request.query_params.get('fecha_inicio')
+        end_date = request.query_params.get('fecha_fin')
+
+        if not initial_date or not end_date:
+            return Response({"error": "Please provide both fecha_inicio and fecha_fin."}, status=status.HTTP_400_BAD_REQUEST)
+
+        daily_values = calculate_portfolio_daily_values(portfolio, initial_date, end_date)
+        serializer = PortfolioDailyValueSerializer(daily_values, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PortfolioAssetViewSet(viewsets.ReadOnlyModelViewSet):
     """
