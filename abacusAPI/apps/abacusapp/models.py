@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime
 from django.db import models
 from django.forms import ValidationError
+from django.utils import timezone
 
 
 logger = logging.getLogger('abacusapp')
@@ -26,6 +28,11 @@ class Asset(models.Model):
         # Get the latest price for this asset
         latest_price = self.prices.order_by('-date').first()
         return latest_price.price if latest_price else None
+
+    def price_by_date(self, date: datetime):
+        # Get the price on the given date
+        price = self.prices.get(date=date)
+        return price.price if price else None
 
 
 class Price(models.Model):
@@ -56,7 +63,7 @@ class PortfolioAsset(models.Model):
 class Deposit(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=20, decimal_places=4)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    date = models.DateField(default=timezone.now)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -64,9 +71,9 @@ class Deposit(models.Model):
 
     def distribute_deposit(self):
         portfolio_assets = PortfolioAsset.objects.filter(portfolio=self.portfolio)
-        total_weight = sum(pa.weight for pa in portfolio_assets)
         logger.info(f"Deposit Started [p={self.portfolio}, cant={self.amount}]")
 
+        total_weight = sum(pa.weight for pa in portfolio_assets)
         if total_weight != 1:
             raise ValidationError("The weights of the assets must sum up to 100%.")
 
@@ -77,12 +84,15 @@ class Deposit(models.Model):
                 f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}]",
             )
 
-            # TODO: It's assuming price is accessible
+            asset_price = pa.asset.price_by_date(self.date)
+            if not asset_price:
+                raise ValidationError(f"Missing asset value for the given date [a={pa.asset}, date={self.date}].")
+            
             logger.debug(
-                f"Deposit for Asset: Adding {allocation} / {pa.asset.price} to {pa.quantity} "
+                f"Deposit for Asset: Adding {allocation} / {asset_price} to {pa.quantity} "
                 f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}]",
             )
-            pa.quantity += allocation / pa.asset.price
+            pa.quantity += allocation / asset_price
             logger.info(
                 f"Deposit for Asset Done "
                 f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}, q={pa.quantity}]",
