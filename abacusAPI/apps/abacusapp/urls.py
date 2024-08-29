@@ -4,6 +4,7 @@ from .views import DepositViewSet, PortfolioAssetViewSet, PortfolioViewSet, Asse
 
 router = DefaultRouter()
 router.register(r'portfolios', PortfolioViewSet)
+router.register(r'portfolios/(?P<portfolio_id>\d+)/assets', PortfolioAssetViewSet, basename='portfolio-details')
 router.register(r'assets', AssetViewSet)
 router.register(r'prices', PriceViewSet) 
 router.register(r'portfolio-assets', PortfolioAssetViewSet)
