@@ -1,6 +1,9 @@
+import logging
 from django.db import models
 from django.forms import ValidationError
 
+
+logger = logging.getLogger('abacusapp')
 
 class Portfolio(models.Model):
     name = models.CharField(max_length=100)
@@ -27,7 +30,7 @@ class Asset(models.Model):
 
 class Price(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='prices')
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=4)
     date = models.DateField()
 
     class Meta:
@@ -40,20 +43,20 @@ class Price(models.Model):
 class PortfolioAsset(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    weight = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4)
+    weight = models.DecimalField(max_digits=10, decimal_places=4)
 
     class Meta:
         unique_together = ('portfolio', 'asset')
 
     def __str__(self):
-        return f"{self.portfolio.name} - {self.asset.name} ({self.quantity=}, {self.weight=}%)"    
+        return f"{self.portfolio.name} - {self.asset.name} (q={self.quantity}, w={self.weight}%)"    
     
 
 class Deposit(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=7, decimal_places=4)
-    date = models.DateField(auto_now_add=True)
+    amount = models.DecimalField(max_digits=20, decimal_places=4)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -62,16 +65,28 @@ class Deposit(models.Model):
     def distribute_deposit(self):
         portfolio_assets = PortfolioAsset.objects.filter(portfolio=self.portfolio)
         total_weight = sum(pa.weight for pa in portfolio_assets)
+        logger.info(f"Deposit Started [p={self.portfolio}, cant={self.amount}]")
 
         if total_weight != 1:
             raise ValidationError("The weights of the assets must sum up to 100%.")
 
         for pa in portfolio_assets:
-            # TODO: add logs to debug transactions
             allocation = pa.weight * self.amount
+            logger.debug(
+                f"Deposit for Asset: {pa.weight} * {self.amount} = {allocation} "
+                f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}]",
+            )
 
             # TODO: It's assuming price is accessible
+            logger.debug(
+                f"Deposit for Asset: Adding {allocation} / {pa.asset.price} to {pa.quantity} "
+                f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}]",
+            )
             pa.quantity += allocation / pa.asset.price
+            logger.info(
+                f"Deposit for Asset Done "
+                f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}, q={pa.quantity}]",
+            )
 
             pa.save()
 
