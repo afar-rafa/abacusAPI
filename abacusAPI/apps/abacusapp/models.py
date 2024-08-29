@@ -19,18 +19,21 @@ class Asset(models.Model):
     
 
 class Price(models.Model):
-    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='price')
-    price = models.DecimalField(max_digits=10, decimal_places=3)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='prices')
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField()
+
+    class Meta:
+        # Ensure unique price per asset per date
+        unique_together = ('asset', 'date')
 
     def __str__(self):
         return f"{self.asset.name} - {self.price} on {self.date}"
-    
 
 class PortfolioAssetQuantity(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         unique_together = ('portfolio', 'asset')
