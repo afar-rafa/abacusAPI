@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Portfolio, Asset, PortfolioAssetQuantity, Price
+from .models import Portfolio, Asset, PortfolioAsset, Price
 
 
 class PortfolioSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class PriceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class PortfolioAssetQuantitySerializer(serializers.ModelSerializer):
+class PortfolioAssetSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PortfolioAssetQuantity
+        model = PortfolioAsset
         fields = '__all__'
