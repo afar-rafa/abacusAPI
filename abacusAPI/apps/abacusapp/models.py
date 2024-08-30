@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
-from django.db import models
-from django.forms import ValidationError
+from django.db import models, transaction
+from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 
 
@@ -51,7 +51,7 @@ class PortfolioAsset(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=4, default=0)
-    weight = models.DecimalField(max_digits=10, decimal_places=4)
+    weight = models.DecimalField(max_digits=10, decimal_places=4, default=0)
 
     class Meta:
         unique_together = ('portfolio', 'asset')
@@ -102,3 +102,81 @@ class Deposit(models.Model):
 
     def __str__(self):
         return f"Deposit of {self.amount} to {self.portfolio.name} on {self.date}"
+
+
+class Transaction(models.Model):
+    """
+    Saves what transactions are don on each asset and portfolio regarding buying and selling
+    """
+
+    TRANSACTION_BUY = 'buy'
+    TRANSACTION_SELL = 'sell'
+
+    TRANSACTION_TYPE_CHOICES = [
+        (TRANSACTION_BUY, 'Buy'),
+        (TRANSACTION_SELL, 'Sell'),
+    ]
+
+    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
+    date = models.DateField()
+    transaction_type = models.CharField(max_length=4, choices=TRANSACTION_TYPE_CHOICES)
+    # Cash involved in the transaction
+    value = models.DecimalField(max_digits=12, decimal_places=2)
+
+
+    def save(self, *args, **kwargs):
+        """
+        Update also the PortfolioAsset model when saving a transaction with the amounts
+        """
+        logger.info("Preparing transaction changes on PortfolioAsset")
+        # Get the price based on the asset and date
+        price = self.asset.price_by_date(self.date)
+        if not price:
+            raise ValidationError(
+                f"Price not found for the given Asset [a={self.asset.name}, d={self.date}]"
+            )
+
+        # Calculate quantity based on value and price
+        quantity = self.value / price
+
+        # to avoid partial updates
+        with transaction.atomic():
+            # Retrieve or create the PortfolioAsset object
+            portfolio_asset, _ = PortfolioAsset.objects.select_for_update().get_or_create(
+                portfolio=self.portfolio,
+                asset=self.asset,
+            )
+
+            logger.debug(
+                "Saving transaction on PortfolioAsset [id=%d, p=%s, a=%s, t=%s, curr_q=%d, q=%d]",
+                portfolio_asset.id,
+                self.portfolio,
+                self.asset,
+                self.transaction_type,
+                portfolio_asset.quantity,
+                quantity,
+            )
+
+            # Adjust quantity based on transaction type
+            if self.transaction_type == self.TRANSACTION_BUY:
+                portfolio_asset.quantity += quantity
+            elif self.transaction_type == self.TRANSACTION_SELL:
+                if portfolio_asset.quantity < quantity:
+                    raise ValidationError(
+                        f"Cannot sell more assets than owned! (current={portfolio_asset.quantity:.2f} < selling={quantity:.2f})",
+                    )
+                portfolio_asset.quantity -= quantity
+
+            # Save the PortfolioAsset changes
+            portfolio_asset.save()
+
+            # delete the portfolio_asset if quantities becomes zero
+            if portfolio_asset.quantity == 0 and portfolio_asset.weight == 0:
+                portfolio_asset.delete()
+
+        super().save(*args, **kwargs)
+
+
+    def __str__(self):
+        return f"{self.transaction_type.capitalize()} {self.value} value of {self.asset.name} for {self.portfolio.name} on {self.date}"

@@ -11,6 +11,7 @@ from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,8 +19,8 @@ from rest_framework.views import APIView
 from abacusAPI.apps.abacusapp.services import calculate_portfolio_daily_value, calculate_portfolio_daily_values, generate_portfolio_plots
 
 from .filters import PortfolioAssetFilter 
-from .models import Deposit, Portfolio, Asset, PortfolioAsset, Price
-from .serializers import DepositSerializer, PortfolioAssetSerializer, PortfolioDailyValueSerializer, PortfolioSerializer, AssetSerializer, PriceSerializer
+from .models import Deposit, Portfolio, Asset, PortfolioAsset, Price, Transaction
+from .serializers import DepositSerializer, PortfolioAssetSerializer, PortfolioDailyValueSerializer, PortfolioSerializer, AssetSerializer, PriceSerializer, TransactionSerializer
 
 logger = logging.getLogger('abacusapp')
 
@@ -118,6 +119,27 @@ class DepositViewSet(viewsets.ModelViewSet):
     serializer_class = DepositSerializer
 
 
+class TransactionViewSet(viewsets.ModelViewSet):
+    queryset = Transaction.objects.all()
+    serializer_class = TransactionSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Catch errors when creating a related PortfolioAsset
+        """
+        try:
+            return super().create(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Catch errors when updating a related PortfolioAsset
+        """
+        try:
+            return super().update(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
 
 class UploadExcelView(APIView):
     """
