@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import openpyxl
@@ -5,6 +6,7 @@ import openpyxl
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -13,7 +15,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from abacusAPI.apps.abacusapp.services import calculate_portfolio_daily_value, calculate_portfolio_daily_values
+from abacusAPI.apps.abacusapp.services import calculate_portfolio_daily_value, calculate_portfolio_daily_values, generate_portfolio_plots
 
 from .filters import PortfolioAssetFilter 
 from .models import Deposit, Portfolio, Asset, PortfolioAsset, Price
@@ -53,6 +55,29 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         serializer = PortfolioDailyValueSerializer(daily_values, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    @action(detail=True, methods=['get'])
+    def plot(self, request, pk=None):
+        portfolio = self.get_object()
+        initial_date = request.query_params.get('fecha_inicio')
+        end_date = request.query_params.get('fecha_fin')
+
+        if not initial_date or not end_date:
+            return Response(
+                {"error": "Please provide both fecha_inicio and fecha_fin."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        image_base64 = generate_portfolio_plots(portfolio, initial_date, end_date)
+        if not image_base64:
+            return Response(
+                {"error": "No data available for the given date range."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Return the image as a response
+        return HttpResponse(base64.b64decode(image_base64), content_type="image/png")
 
 class PortfolioAssetViewSet(viewsets.ReadOnlyModelViewSet):
     """
