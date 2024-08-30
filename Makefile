@@ -18,6 +18,16 @@ help:
 	@echo "  make superuser		  - Create a Django superuser"
 	@echo "  make shell           - Open Django shell"
 
+quick-setup:
+	@echo "/*************************************************/"
+	@echo "\t\tRunning Migrations"
+	@echo "/*************************************************/"
+	make migrate
+	@echo "/*************************************************/"
+	@echo "\t\tCreate Your User!"
+	@echo "/*************************************************/"
+	make superuser
+
 migrations:
 	$(MANAGE) makemigrations
 
@@ -33,5 +43,11 @@ test:
 superuser:
 	$(MANAGE) createsuperuser
 
-shell:
-	$(MANAGE) shell
+docker-build:
+	docker compose build web --force-rm
+docker-start:
+	docker compose up --remove-orphans web
+docker-shell:
+	docker compose exec web bash
+docker-down:
+	docker compose down --remove-orphans
