@@ -30,8 +30,8 @@ migrate:
 	$(MANAGE) migrate
 
 test:
-	black --check .
-	isort --check .
+	black --check . --exclude migrations/
+	isort --check . --skip migrations/
 
 format:
 	black .

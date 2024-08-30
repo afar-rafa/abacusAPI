@@ -1,11 +1,12 @@
 import logging
 from datetime import datetime
+
 from django.db import models, transaction
-from rest_framework.exceptions import ValidationError
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
+logger = logging.getLogger("abacusapp")
 
-logger = logging.getLogger('abacusapp')
 
 class Portfolio(models.Model):
     name = models.CharField(max_length=100)
@@ -15,18 +16,18 @@ class Portfolio(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 
 class Asset(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
-    
+
     @property
     def price(self):
         # Get the latest price for this asset
-        latest_price = self.prices.order_by('-date').first()
+        latest_price = self.prices.order_by("-date").first()
         return latest_price.price if latest_price else None
 
     def price_by_date(self, date: datetime):
@@ -36,13 +37,13 @@ class Asset(models.Model):
 
 
 class Price(models.Model):
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='prices')
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name="prices")
     price = models.DecimalField(max_digits=10, decimal_places=4)
     date = models.DateField()
 
     class Meta:
         # Ensure unique price per asset per date
-        unique_together = ('asset', 'date')
+        unique_together = ("asset", "date")
 
     def __str__(self):
         return f"{self.asset.name} - {self.price} on {self.date}"
@@ -55,11 +56,11 @@ class PortfolioAsset(models.Model):
     weight = models.DecimalField(max_digits=20, decimal_places=4, default=0)
 
     class Meta:
-        unique_together = ('portfolio', 'asset')
+        unique_together = ("portfolio", "asset")
 
     def __str__(self):
-        return f"{self.portfolio.name} - {self.asset.name} (q={self.quantity}, w={self.weight}%)"    
-    
+        return f"{self.portfolio.name} - {self.asset.name} (q={self.quantity}, w={self.weight}%)"
+
 
 class Deposit(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
@@ -87,8 +88,10 @@ class Deposit(models.Model):
 
             asset_price = pa.asset.price_by_date(self.date)
             if not asset_price:
-                raise ValidationError(f"Missing asset value for the given date [a={pa.asset}, date={self.date}].")
-            
+                raise ValidationError(
+                    f"Missing asset value for the given date [a={pa.asset}, date={self.date}]."
+                )
+
             logger.debug(
                 f"Deposit for Asset: Adding {allocation} / {asset_price} to {pa.quantity} "
                 f"[p={self.portfolio.name}, a={pa.asset.name}, cant={self.amount}]",
@@ -110,12 +113,12 @@ class Transaction(models.Model):
     Saves what transactions are don on each asset and portfolio regarding buying and selling
     """
 
-    TRANSACTION_BUY = 'buy'
-    TRANSACTION_SELL = 'sell'
+    TRANSACTION_BUY = "buy"
+    TRANSACTION_SELL = "sell"
 
     TRANSACTION_TYPE_CHOICES = [
-        (TRANSACTION_BUY, 'Buy'),
-        (TRANSACTION_SELL, 'Sell'),
+        (TRANSACTION_BUY, "Buy"),
+        (TRANSACTION_SELL, "Sell"),
     ]
 
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
@@ -124,7 +127,6 @@ class Transaction(models.Model):
     transaction_type = models.CharField(max_length=4, choices=TRANSACTION_TYPE_CHOICES)
     # Cash involved in the transaction
     value = models.DecimalField(max_digits=20, decimal_places=4)
-
 
     def save(self, *args, **kwargs):
         """
@@ -144,7 +146,10 @@ class Transaction(models.Model):
         # to avoid partial updates
         with transaction.atomic():
             # Retrieve or create the PortfolioAsset object
-            portfolio_asset, _ = PortfolioAsset.objects.select_for_update().get_or_create(
+            (
+                portfolio_asset,
+                _,
+            ) = PortfolioAsset.objects.select_for_update().get_or_create(
                 portfolio=self.portfolio,
                 asset=self.asset,
             )
@@ -177,7 +182,6 @@ class Transaction(models.Model):
                 portfolio_asset.delete()
 
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         return f"{self.transaction_type.capitalize()} {self.value} value of {self.asset.name} for {self.portfolio.name} on {self.date}"

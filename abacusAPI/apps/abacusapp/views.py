@@ -1,8 +1,8 @@
 import base64
 import logging
 import os
-import openpyxl
 
+import openpyxl
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db import transaction
@@ -16,53 +16,64 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from abacusAPI.apps.abacusapp.services import calculate_portfolio_daily_value, calculate_portfolio_daily_values, generate_portfolio_plots
+from abacusAPI.apps.abacusapp.services import (
+    calculate_portfolio_daily_value, calculate_portfolio_daily_values,
+    generate_portfolio_plots)
 
-from .filters import PortfolioAssetFilter 
-from .models import Deposit, Portfolio, Asset, PortfolioAsset, Price, Transaction
-from .serializers import DepositSerializer, PortfolioAssetSerializer, PortfolioDailyValueSerializer, PortfolioSerializer, AssetSerializer, PriceSerializer, TransactionSerializer
+from .filters import PortfolioAssetFilter
+from .models import (Asset, Deposit, Portfolio, PortfolioAsset, Price,
+                     Transaction)
+from .serializers import (AssetSerializer, DepositSerializer,
+                          PortfolioAssetSerializer,
+                          PortfolioDailyValueSerializer, PortfolioSerializer,
+                          PriceSerializer, TransactionSerializer)
 
-logger = logging.getLogger('abacusapp')
+logger = logging.getLogger("abacusapp")
 
 
 class PortfolioViewSet(viewsets.ModelViewSet):
     queryset = Portfolio.objects.all()
     serializer_class = PortfolioSerializer
 
-
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def daily_value(self, request, pk=None):
         portfolio = self.get_object()
-        date = request.query_params.get('date')
+        date = request.query_params.get("date")
 
         if not date:
-            return Response({"error": "Please provide a date."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Please provide a date."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         daily_value = calculate_portfolio_daily_value(portfolio, date)
         serializer = PortfolioDailyValueSerializer(daily_value)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def daily_values(self, request, pk=None):
         portfolio = self.get_object()
-        initial_date = request.query_params.get('fecha_inicio')
-        end_date = request.query_params.get('fecha_fin')
+        initial_date = request.query_params.get("fecha_inicio")
+        end_date = request.query_params.get("fecha_fin")
 
         if not initial_date or not end_date:
-            return Response({"error": "Please provide both fecha_inicio and fecha_fin."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Please provide both fecha_inicio and fecha_fin."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        daily_values = calculate_portfolio_daily_values(portfolio, initial_date, end_date)
+        daily_values = calculate_portfolio_daily_values(
+            portfolio, initial_date, end_date
+        )
         serializer = PortfolioDailyValueSerializer(daily_values, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def plot(self, request, pk=None):
         portfolio = self.get_object()
-        initial_date = request.query_params.get('fecha_inicio')
-        end_date = request.query_params.get('fecha_fin')
+        initial_date = request.query_params.get("fecha_inicio")
+        end_date = request.query_params.get("fecha_fin")
 
         if not initial_date or not end_date:
             return Response(
@@ -80,39 +91,48 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         # Return the image as a response
         return HttpResponse(base64.b64decode(image_base64), content_type="image/png")
 
+
 class PortfolioAssetViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet used to show all Assets under the same portfolio
     under the portfolios/{portfolio_id}/assets/ url
     """
+
     serializer_class = AssetSerializer
 
     def get_queryset(self):
-        portfolio_id = self.kwargs.get('portfolio_id')
+        portfolio_id = self.kwargs.get("portfolio_id")
         return Asset.objects.filter(portfolioasset__portfolio_id=portfolio_id)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         if not queryset.exists():
-            return Response({'detail': 'No assets found for this portfolio'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "No assets found for this portfolio"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
+
+
 class AssetViewSet(viewsets.ModelViewSet):
     queryset = Asset.objects.all()
     serializer_class = AssetSerializer
 
+
 class PriceViewSet(viewsets.ModelViewSet):
-    queryset = Price.objects.all().order_by('date')
+    queryset = Price.objects.all().order_by("date")
     serializer_class = PriceSerializer
     pagination_class = PageNumberPagination
+
 
 class PortfolioAssetViewSet(viewsets.ModelViewSet):
     queryset = PortfolioAsset.objects.all()
     serializer_class = PortfolioAssetSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = PortfolioAssetFilter
+
 
 class DepositViewSet(viewsets.ModelViewSet):
     queryset = Deposit.objects.all()
@@ -141,34 +161,36 @@ class TransactionViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class UploadExcelView(APIView):
     """
     View to be able to load the .xlsx setup file
     """
+
     def get(self, request, *args, **kwargs):
-        return render(request, 'upload_excel.html')
-    
+        return render(request, "upload_excel.html")
+
     def post(self, request, *args, **kwargs):
         logger.info("Started File Upload")
 
         # Handle the file upload
-        if 'file' not in request.FILES:
+        if "file" not in request.FILES:
             return Response(
                 {"error": "No file uploaded"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        f = request.FILES['file']
-        if not f.name.endswith('.xlsx'):
+        f = request.FILES["file"]
+        if not f.name.endswith(".xlsx"):
             return Response(
-                {"error": "File is not in .xlsx format"}, 
+                {"error": "File is not in .xlsx format"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         logger.info(f"Received File Correctly [file={f.name}]")
 
         # save the file
-        file_path = default_storage.save('temp/' + f.name, f)
+        file_path = default_storage.save("temp/" + f.name, f)
         file_full_path = os.path.join(settings.MEDIA_ROOT, file_path)
 
         # TODO: The file logic could be split to helper functions
@@ -176,8 +198,7 @@ class UploadExcelView(APIView):
         try:
             # Read the file
             workbook = openpyxl.load_workbook(file_full_path)
-            
-            
+
             # Process "weights" sheet
             weights_sheet = workbook["weights"]
 
@@ -189,14 +210,14 @@ class UploadExcelView(APIView):
                 logger.debug("Creating Portfolio [name=%s]", name)
                 portfolio, _ = Portfolio.objects.get_or_create(name=name)
                 portfolios[name] = portfolio
-            
+
             # this is to avoid getting/creating Assets multiple times
             assets_by_name = {}
 
             # Process each row for the assets and weights
             for row in weights_sheet.iter_rows(min_row=2, values_only=True):
                 date, asset_name, *weights = row
-                
+
                 # stop when rows are empty
                 if not date or not asset_name:
                     logger.info("Done processing Portfolios")
@@ -213,7 +234,10 @@ class UploadExcelView(APIView):
                 for portfolio_name, weight in zip(portfolio_names, weights):
                     logger.debug(
                         "Creating PortfolioAsset [p=%s, a=%s, d=%s, w=%s]",
-                        portfolio_name, asset_name, date, weight,
+                        portfolio_name,
+                        asset_name,
+                        date,
+                        weight,
                     )
                     PortfolioAsset.objects.update_or_create(
                         portfolio=portfolios[portfolio_name],
@@ -225,7 +249,7 @@ class UploadExcelView(APIView):
             prices_sheet = workbook["Precios"]
 
             # Get the asset names from the header row
-            asset_names = [cell.value for cell in prices_sheet[1][1:]] 
+            asset_names = [cell.value for cell in prices_sheet[1][1:]]
 
             # First get/create the assets and save them
             for name in asset_names:
@@ -246,9 +270,11 @@ class UploadExcelView(APIView):
                 for asset_name, price in zip(asset_names, row[1:]):
                     logger.debug(
                         "Preparing Asset Price [asset=%s, price=%s, date=%s]",
-                        asset_name, price, date,
+                        asset_name,
+                        price,
+                        date,
                     )
-                    
+
                     asset = assets_by_name[asset_name]
                     price_obj = Price.objects.filter(
                         asset=asset,
@@ -267,7 +293,6 @@ class UploadExcelView(APIView):
                             ),
                         )
 
-            
             # transaction to ensure atomicity
             with transaction.atomic():
                 # Bulk create new prices
@@ -278,12 +303,12 @@ class UploadExcelView(APIView):
                 # Bulk update existing prices
                 if prices_to_update:
                     logger.debug("Updating Asset Prices (%d)", len(prices_to_update))
-                    Price.objects.bulk_update(prices_to_update, ['price'])
+                    Price.objects.bulk_update(prices_to_update, ["price"])
 
         except Exception as e:
             logger.exception("File Upload Failed")
             return Response(
-                {"error": str(e)}, 
+                {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         finally:
