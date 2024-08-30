@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
-from .models import (Asset, Deposit, Portfolio, PortfolioAsset, Price,
-                     Transaction)
+from .models import Asset, Deposit, Portfolio, PortfolioAsset, Price, Transaction
 
 
 class PortfolioSerializer(serializers.ModelSerializer):

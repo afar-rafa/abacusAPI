@@ -17,16 +17,22 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from abacusAPI.apps.abacusapp.services import (
-    calculate_portfolio_daily_value, calculate_portfolio_daily_values,
-    generate_portfolio_plots)
+    calculate_portfolio_daily_value,
+    calculate_portfolio_daily_values,
+    generate_portfolio_plots,
+)
 
 from .filters import PortfolioAssetFilter
-from .models import (Asset, Deposit, Portfolio, PortfolioAsset, Price,
-                     Transaction)
-from .serializers import (AssetSerializer, DepositSerializer,
-                          PortfolioAssetSerializer,
-                          PortfolioDailyValueSerializer, PortfolioSerializer,
-                          PriceSerializer, TransactionSerializer)
+from .models import Asset, Deposit, Portfolio, PortfolioAsset, Price, Transaction
+from .serializers import (
+    AssetSerializer,
+    DepositSerializer,
+    PortfolioAssetSerializer,
+    PortfolioDailyValueSerializer,
+    PortfolioSerializer,
+    PriceSerializer,
+    TransactionSerializer,
+)
 
 logger = logging.getLogger("abacusapp")
 

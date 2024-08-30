@@ -31,11 +31,11 @@ migrate:
 
 test:
 	black --check . --exclude migrations/
-	isort --check . --skip migrations/
+	isort --check . --profile black --skip migrations/
 
 format:
-	black .
-	isort .
+	black . --exclude migrations/
+	isort . --profile black --skip migrations/
 
 superuser:
 	$(MANAGE) createsuperuser

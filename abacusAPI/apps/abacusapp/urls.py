@@ -1,9 +1,15 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (AssetViewSet, DepositViewSet, PortfolioAssetViewSet,
-                    PortfolioViewSet, PriceViewSet, TransactionViewSet,
-                    UploadExcelView)
+from .views import (
+    AssetViewSet,
+    DepositViewSet,
+    PortfolioAssetViewSet,
+    PortfolioViewSet,
+    PriceViewSet,
+    TransactionViewSet,
+    UploadExcelView,
+)
 
 router = DefaultRouter()
 router.register(r"portfolios", PortfolioViewSet)
