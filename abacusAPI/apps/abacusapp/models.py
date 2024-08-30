@@ -47,11 +47,12 @@ class Price(models.Model):
     def __str__(self):
         return f"{self.asset.name} - {self.price} on {self.date}"
 
+
 class PortfolioAsset(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=10, decimal_places=4, default=0)
-    weight = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    quantity = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    weight = models.DecimalField(max_digits=20, decimal_places=4, default=0)
 
     class Meta:
         unique_together = ('portfolio', 'asset')
@@ -66,8 +67,8 @@ class Deposit(models.Model):
     date = models.DateField(default=timezone.now)
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
         self.distribute_deposit()
+        super().save(*args, **kwargs)
 
     def distribute_deposit(self):
         portfolio_assets = PortfolioAsset.objects.filter(portfolio=self.portfolio)
@@ -122,7 +123,7 @@ class Transaction(models.Model):
     date = models.DateField()
     transaction_type = models.CharField(max_length=4, choices=TRANSACTION_TYPE_CHOICES)
     # Cash involved in the transaction
-    value = models.DecimalField(max_digits=12, decimal_places=2)
+    value = models.DecimalField(max_digits=20, decimal_places=4)
 
 
     def save(self, *args, **kwargs):
