@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 COPY . /app/
@@ -10,7 +10,8 @@ ENV PYTHONPATH="/app"
 RUN apt update && apt install -y make
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements.dev.txt
 
 EXPOSE 8000
 

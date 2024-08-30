@@ -1,0 +1,3 @@
+# pytest-django==4.5.2      # For testing (unused)
+black==24.8.0
+isort==5.13.2

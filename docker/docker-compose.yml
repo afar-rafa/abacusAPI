@@ -1,14 +1,14 @@
 services:
   web:
-    build: .
+    build:
+      context: ../.
+      dockerfile: docker/Dockerfile
     entrypoint: python3 manage.py runserver 0.0.0.0:8000
     # entrypoint: bash
     volumes:
-      - .:/app
+      - ../.:/app
     # working_dir: /app
     ports:
       - "8000:8000"
     env_file:
-      - .env
-    environment:
-      - DJANGO_SETTINGS_MODULE=abacusAPI.config.settings.local
+      - ../.env
