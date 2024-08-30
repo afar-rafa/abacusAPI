@@ -32,6 +32,8 @@ AbacusApp is a fintech-related Django API designed to manage portfolios, assets,
         make docker-start
         ```
 
+    ⚠️ _Important: Don't open it yet! We gotta make the migrations first._
+
 1. **Set up DB:**
 
     - Then, on a **separate shell**, run:
@@ -45,7 +47,7 @@ AbacusApp is a fintech-related Django API designed to manage portfolios, assets,
 
     - Go to http://0.0.0.0:8000/admin
     - Login with the creds you just made
-    - Go back to http://localhost:8000/ to see the menu
+    - Go back to http://0.0.0.0:8000/ to see the menu
 
 1. **Load your data:**
 
@@ -77,10 +79,10 @@ Vroom vroom, you're good to go!
 1. _Calcule las cantidades iniciales ($C_{i,0}$) para cada uno de los 17 activos en cada uno de los 2 portafolios_
 
     - First make a deposit on each portfolio on the specified date:
-        - `http://0.0.0.0:8000/deposits/`
+        - http://0.0.0.0:8000/deposits/
         - ⚠️ _**WARNING**: Notice that the API UI uses the EEUU date format (month-day-year)._
     - Then you can check the quantities for said date here:
-        - `http://0.0.0.0:8000/portfolios/2/daily_value/?date=2022-02-15`
+        - http://0.0.0.0:8000/portfolios/2/daily_value/?date=2022-02-15
 
 1. *Genere endpoints tipo API rest que reciban los parametros `fecha_inicio` y `fecha_fin` y entregue los valores entre esas fechas para $w_{i,t}$ y $V_t$.*
 
@@ -90,12 +92,13 @@ Vroom vroom, you're good to go!
 1. _**Bonus 1**: Genere un view que utilice la API anterior donde se pueda comparar de manera gráfica la evolución en el tiempo de las variables $w_{i,t}$ y $V_t$._
 
     - Use the following endpoint, using the respective ID:
-        - http://0.0.0.0:8000/portfolios/1/plot/?fecha_inicio=2022-02-15&fecha_fin=2022-02-17
+        - http://0.0.0.0:8000/portfolios/1/plot/?fecha_inicio=2022-02-15&fecha_fin=2022-02-28
 
 1. _(...) un metodo que permita procesar compra ventas de activos_
 
     - Use the following endpoint, using `value` as the amount of cash to be invested on the Asset:
         - http://0.0.0.0:8000/transactions
+        - It should fail if you try to sell more than what a portfolio has for a given Asset
 
 ## General Endpoints
 
